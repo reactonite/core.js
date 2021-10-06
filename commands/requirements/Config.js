@@ -38,12 +38,12 @@ class Config {
 
   get_config() {
     //Returns the configuration as a dictionary
-    return self.config;
+    return this.config;
   }
 
   get(key) {
     //Gets a config variable
-    return this.config.get(key);
+    return this.config[key];
   }
 
   save_config() {
