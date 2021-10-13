@@ -177,6 +177,17 @@ class NodeWrapper {
   */
     this.run(this.npm + " start", working_dir);
   }
+
+  build(working_dir) {
+    /*Create an optimized build of your app in the build folder
+
+        Parameters
+        ----------
+        working_dir : str
+            Directory containing npm project root
+    */
+    this.run(this.npm + " run build", working_dir);
+  }
 }
 
 a = new NodeWrapper();
