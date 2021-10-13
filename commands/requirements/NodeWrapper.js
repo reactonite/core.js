@@ -167,6 +167,16 @@ class NodeWrapper {
     */
     this.run(this.npm + " i " + package_name + " --save", working_dir);
   }
+
+  start(working_dir) {
+    /*Runs the command npm start in the given working directory
+  Parameters
+  ----------
+  working_dir : str
+      Directory to execute the command in.
+  */
+    this.run(this.npm + " start", working_dir);
+  }
 }
 
 a = new NodeWrapper();
