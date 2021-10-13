@@ -103,6 +103,57 @@ class NodeWrapper {
     gui_dir = path.join(cur_dir, "gui");
     this.run(this.npm + " start", gui_dir);
   }
+
+  create_react_app(project_name, rename_to, working_dir = ".") {
+    /*Creates a new react app and renames it as specified.
+
+        Parameters
+        ----------
+        project_name : str
+            Project name to be used to create the app
+        rename_to : str
+            Renames the created React app to this
+        working_dir : str
+            Working dir to run commands inside
+    */
+    this.run(
+      this.npx +
+        " create-react-app " +
+        project_name +
+        " --use-npm --template cra-template-pwa",
+      working_dir
+    );
+  }
+
+  create_react_app(project_name, rename_to, working_dir = ".") {
+    /*Creates a new react app and renames it as specified.
+
+        Parameters
+        ----------
+        project_name : str
+            Project name to be used to create the app
+        rename_to : str
+            Renames the created React app to this
+        working_dir : str
+            Working dir to run commands inside
+    */
+    this.run(
+      this.npx +
+        " create-react-app " +
+        project_name +
+        " --use-npm --template cra-template-pwa",
+      working_dir
+    );
+    src = path.join(working_dir, project_name);
+    dest = path.join(".", rename_to);
+    setTimeout(function () {
+      fs.rename(src, dest, (error) => {
+        if (error) {
+          console.log("There is an error", error);
+        }
+      });
+    }, 1000);
+  }
 }
 
 a = new NodeWrapper();
