@@ -97,6 +97,12 @@ class NodeWrapper {
       }
     });
   }
+
+  start_grapesjs(project_dir) {
+    cur_dir = project_dir;
+    gui_dir = path.join(cur_dir, "gui");
+    this.run(this.npm + " start", gui_dir);
+  }
 }
 
 a = new NodeWrapper();
