@@ -154,6 +154,19 @@ class NodeWrapper {
       });
     }, 1000);
   }
+
+  install(package_name, working_dir) {
+    /*Installs the given package in npm and saves in package.json
+
+        Parameters
+        ----------
+        package_name : str
+            Package to be installed.
+        working_dir : str
+            Directory containing npm project root
+    */
+    this.run(this.npm + " i " + package_name + " --save", working_dir);
+  }
 }
 
 a = new NodeWrapper();
