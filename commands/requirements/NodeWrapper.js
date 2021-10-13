@@ -67,6 +67,36 @@ class NodeWrapper {
       throw new Error("nodejs not found. Please install/reinstall node");
     }
   }
+
+  install_grapesjs(project_dir) {
+    cur_dir = project_dir;
+    present = false;
+    fs.readdir(cur_dir, function (err, files) {
+      if (err) {
+        console.log(err);
+      } else {
+        for (f in files) {
+          if (f == "gui") {
+            present = true;
+            break;
+          }
+        }
+      }
+      gui_dir = path.join(cur_dir, "gui");
+      if (present == false) {
+        fs.mkdir(path.join(__dirname, "test"), (err) => {
+          if (err) {
+            return console.error(err);
+          }
+        });
+        grapesjs_path = "https://github.com/reactonite/grapesjs/";
+        this.run("git init", gui_dir);
+        this.run("git remote add origin", gui_dir);
+        this.run("git remote add origin " + grapesjs_path, gui_dir);
+        this.run(this.npm + " -i", gui_dir);
+      }
+    });
+  }
 }
 
 a = new NodeWrapper();
