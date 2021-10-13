@@ -188,6 +188,19 @@ class NodeWrapper {
     */
     this.run(this.npm + " run build", working_dir);
   }
+
+  prettify(path, working_dir = ".") {
+    /*Runs code formatting using prettier on the given path
+
+        Parameters
+        ----------
+        path : str
+            Filepath or directory to run prettier on
+        working_dir : str
+            Directory from which command is run
+    */
+    this.run(this.npx + " prettier --write " + path, working_dir);
+  }
 }
 
 a = new NodeWrapper();
