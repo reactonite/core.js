@@ -425,4 +425,29 @@ class Transpiler {
       );
     }
   }
+
+  __getReactComponentName(link) {
+    /*Generates safe name for React compnents from path to file.
+
+        Parameters
+        ----------
+        link : str
+            Path to file for which varibale is created.
+
+        Returns
+        -------
+        str
+            Variable name generated from link
+    */
+    varName = "";
+    var regex = /^[0-9a-z]+$/;
+    for (ch in link) {
+      _ch = link.charAt(ch);
+      if (!_ch.match(regex)) {
+        _ch = "_";
+      }
+      varName += _ch;
+    }
+    return "REACTONITE" + varName.toUpperCase();
+  }
 }
