@@ -1,3 +1,8 @@
+const HTMLParser = require("node-html-parser");
+const path = require("path");
+const fs = require("fs");
+const NodeWrapper = require("./NodeWrapper");
+
 class ReactCodeMapper {
   /*Class to convert tags and props from HTML to React
 
@@ -327,5 +332,97 @@ class ReactCodeMapper {
     final_map["imports"] = this.add_to_import.join("\n");
     final_map["variables"] = this.add_variables;
     return final_map;
+  }
+}
+
+class Transpiler {
+  /*Transpiler responsible for translating HTML code to React
+
+    Attributes
+    ----------
+    project_name : str
+        Name of the project as stored in config
+    src_dir : str
+        Path of the source directory within the project directory
+    dest_dir : str
+        Path to the transpiled React app within the project directory
+    index_routes : dict
+        Stores Routes data corresponding to different pages for index.js
+    parser : str, optional
+        Specify which parser to use for reading HTML files, defaults
+        to "html.parser"
+    verbose : bool, optional
+        Specify the verbosity of the transpiler, defaults to False
+    */
+
+  constructor(
+    config_settings,
+    props_map,
+    verbose = false,
+    create_project = false
+  ) {
+    /*Transpiler initiator takes config settings and unpacks variables.
+
+        Parameters
+        ----------
+        config_settings : dict
+            project_name, src_dir, dest_dir as dict object stored
+            in config.json
+        props_map : dict
+            Mapping of props for HTML to React used during transpilation
+        verbose : bool, optional
+            Specify the verbosity of the transpiler, deafults to False
+        create_project : bool, optional
+            Set to True if create project is calling method, deafults to False
+
+        Raises
+        ------
+        RuntimeError
+            Raised if the config_settings point to non existing dirs.
+    */
+
+    this.project_name = config_settings["project_name"];
+    this.src_dir = config_settings["src_dir"];
+    this.dest_dir = config_settings["dest_dir"];
+    this.props_map = props_map;
+    this.index_routes = {};
+    this.parser = "node.html.parser";
+    this.verbose = verbose;
+
+    if (create_project) {
+      this.src_dir = path.join(".", this.project_name, this.src_dir);
+      this.dest_dir = path.join(".", this.project_name, this.dest_dir);
+    }
+
+    npm = new NodeWrapper();
+
+    if (!fs.existsSync(path.join(".", this.src_dir))) {
+      throw Error("Source directory doesn't exist at  " + String(this.src_dir));
+    }
+
+    if (!fs.existsSync(path.join(".", this.dest_dir))) {
+      if (create_project) {
+        project_dir = path.join(".", this.project_name);
+        npm.create_react_app(
+          (project_name = this.project_name),
+          (working_dir = project_dir),
+          (rename_to = this.dest_dir)
+        );
+      } else {
+        npm.create_react_app(
+          (project_name = this.project_name),
+          (rename_to = this.dest_dir)
+        );
+      }
+      // Install NPM packages
+      npm.install(
+        (package_name = "react-helmet"),
+        (working_dir = this.dest_dir)
+      );
+      npm.install(
+        (package_name = "react-router-dom"),
+        (working_dir = this.dest_dir)
+      );
+    }
   }
 }
