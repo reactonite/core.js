@@ -47,4 +47,72 @@ class ReactCodeMapper {
       link: self.__LINK_TAG_HANDLER,
     };
   }
+
+  __getSafeName(link) {
+    /*Generates safe name for varibale from path to file.
+
+        Parameters
+        ----------
+        link : str
+            Path to file for which varibale is created.
+
+        Returns
+        -------
+        str
+            Variable name generated from link
+  */
+    varName = "";
+    var regex = /^[0-9a-z]+$/;
+    for (ch in link) {
+      _ch = link.charAt(ch);
+      if (!_ch.match(regex)) {
+        _ch = "_";
+      }
+      varName += _ch;
+    }
+    return varName;
+  }
+
+  __getLinkInfo(self, link, filepath_from_src, no_var = false) {
+    /*Generates link information.
+
+        If link is internal corresponding variable name is generated, for
+        external link it is returned.
+
+        Parameters
+        ----------
+        link : str
+            Link for filepath or external link.
+        filepath_from_src : str
+            Path to file from src.
+        no_var : bool, optional
+            To generate import variable or just import file, default is False
+            i.e. generate variable
+
+        Returns
+        -------
+        str
+            Variable name generated from link or link in external case.
+  */
+
+    if (link) {
+      pathToLink = path.join(self.src_dir, filepath_from_src, link);
+      pathToIndexLink = path.join(pathToLink, "index.html");
+      stats_pathToLink = fs.statSync(pathToLink);
+      stats_pathToIndexLink = fs.statSync(pathToIndexLink);
+      if (stats_pathToLink || stats_pathToIndexLink) {
+        var_ = this.__getSafeName(link);
+        if (no_var) {
+          this.add_to_import.push("import " + link);
+          return "@";
+        } else {
+          this.add_to_import.push("import " + var_ + " from " + link);
+        }
+        this.add_variables.push(var_);
+        return "{" + var_ + "}";
+      }
+    } else {
+      return link;
+    }
+  }
 }
