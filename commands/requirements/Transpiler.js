@@ -258,4 +258,36 @@ class ReactCodeMapper {
     }
     return final_attrs;
   }
+
+  __getReactAttrs(attrs) {
+    /*Generates renamed attributes correspoding to React, and removes
+        inline style tags and tags starting with on like onclick etc.
+
+        Parameters
+        ----------
+        attrs : dict
+            Attributes in HTML format
+
+        Returns
+        -------
+        dict
+            Attributes in React format
+    */
+    final_attrs = {};
+    for (const [key, value] of Object.entries(final_attrs)) {
+      if (key == "style") {
+        continue;
+      }
+      if (key.startsWith("on")) {
+        continue;
+      }
+      if (key in this.props_map) {
+        useKey = this.props_map[attrKey];
+      } else {
+        useKey = key;
+      }
+      final_attrs[useKey] = attrs[key];
+    }
+    return final_attrs;
+  }
 }
