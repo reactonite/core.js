@@ -290,4 +290,42 @@ class ReactCodeMapper {
     }
     return final_attrs;
   }
+
+  getReactMap(tags, filepath_from_src) {
+    /*Wrapper to generate React Map object comprising of all data needed
+        to convert HTML to React
+
+        Parameters
+        ----------
+        tags : dict
+            HTML attributes extracted using AttributesParser
+        filepath_from_src : str
+            Path to file from src directory
+
+        Returns
+        -------
+        dict
+            Final mapping of tags with imports and varibles for React, if any
+            attribute is None then tag needs to be deleted
+    */
+    final_map = {
+      imports: [],
+      tags: [],
+      variables: [],
+    };
+    for (const [tag_name] of Object.entries(tags)) {
+      attrs = this.__getReactAttrs(tags[tag_name]);
+      if (tag_name in this.CUSTOM_TAG_HANDLERS) {
+        attrs = this.__customTagAttrsHandler(
+          attrs,
+          this.CUSTOM_TAG_HANDLERS[tag_name],
+          filepath_from_src
+        );
+        final_map["tags"].push({ tag_name: attrs });
+      }
+    }
+    final_map["imports"] = this.add_to_import.join("\n");
+    final_map["variables"] = this.add_variables;
+    return final_map;
+  }
 }
