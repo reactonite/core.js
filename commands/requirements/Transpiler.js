@@ -115,4 +115,97 @@ class ReactCodeMapper {
       return link;
     }
   }
+
+  __getAttrsWithLink(attrs, linkAttr, filepath_from_src, no_var = False) {
+    /*
+    Generates attrs for tags having links to other files.
+
+    If link is internal corresponding variable name is generated, for
+    external link it is returned.
+
+    Parameters
+    ----------
+    attrs : dict
+        Attributes of tag to be worked upon.
+    linkAttr : str
+        Name of attr that correspond to link of file, example 'src' in
+        case of script tag
+    filepath_from_src : str
+        Path to file from src directory.
+    no_var : bool, optional
+        To generate import variable or just import file, default is False
+        i.e. generate variable
+
+    Returns
+    -------
+    dict
+        Final dictonary of attributes with link handled     
+ */
+    final_attrs = {};
+    for (const [key, value] of Object.entries(final_attrs)) {
+      if (key == linkAttr) {
+        link_info = this.__getLinkInfo(value, filepath_from_src, no_var);
+        if (link_info == "@") {
+          return;
+        }
+        final_attrs[linkAttr] = link_info;
+      } else {
+        final_attrs[key] = attrs[key];
+      }
+    }
+    return final_attrs;
+  }
+
+  __getAttrsForRouterLink(attrs, filepath_from_src) {
+    /*Generates attrs for A tag having links to other files.
+
+    If link is internal that is checked and also link is generated is
+    generated, for external link it is returned.
+
+    Parameters
+    ----------
+    attrs : dict
+        Attributes of tag to be worked upon.
+    filepath_from_src : str
+        Path to file from src directory.
+
+    Returns
+    -------
+    tuple
+        Tuple of final dictonary of attributes with link handled and
+        information about internal link
+    */
+
+    final_attrs = {};
+    is_internal = false;
+    for (const [key, value] of Object.entries(final_attrs)) {
+      if (key == "href") {
+        href_info = attrs[key];
+        pathRef = path.join(this.src_dir, filepath_from_src, href_info);
+        pathRefIndex = path.join(
+          this.src_dir,
+          filepath_from_src,
+          href_info,
+          "index.html"
+        );
+        stats_pathToLink = fs.statSync(pathToLink);
+        stats_pathToIndexLink = fs.statSync(pathToIndexLink);
+        if (stats_pathToLink || stats_pathToIndexLink) {
+          htmlPath = path.normalize(path.join(filepath_from_src, href_info));
+          jsPath = htmlPath.split(path.sep).join("/");
+          jsPath = jsPath.replace(".html", "");
+          if (jsPath == "index") {
+            jsPath = "/";
+          }
+          is_internal = true;
+          final_attrs["to"] = jsPath;
+        } else {
+          final_attrs["href"] = href_info;
+        }
+      } else {
+        final_attrs[key] = attrs[key];
+      }
+    }
+    return [final_attrs, is_internal];
+  }
 }
