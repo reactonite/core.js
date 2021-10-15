@@ -208,4 +208,54 @@ class ReactCodeMapper {
     }
     return [final_attrs, is_internal];
   }
+
+  __customTagAttrsHandler(attrs, tag_handler, filepath_from_src, link) {
+    /*Custom tag and attributes handler for parsing attrs from CUSTOM_TAG_HANDLERS
+
+        Parameters
+        ----------
+        attrs : dict
+            Attributes for corresponding tag needed to be handled
+        tag_handler : str
+            Tag handler type to be used in mapping
+        filepath_from_src : str
+            Path to file from src directory
+
+        Returns
+        -------
+        dict
+            Final attributes for that tag, if None is returned delete the tag
+      */
+    final_attrs = {};
+    if (tag_handler == this.__A_TAG_HANDLER) {
+      res = this.__getAttrsForRouterLink(attrs, filepath_from_src);
+      final_attrs = res[0];
+      is_internal_link = res[1];
+      if (!this.router_link_imported && is_internal_link) {
+        this.add_to_import.push("import " + link + ' from "react-router-dom";');
+        this.router_link_imported = true;
+      }
+    } else if (tag_handler == this.IMAGE_TAG_HANDLER) {
+      final_attrs = this.__getAttrsWithLink(attrs, "src", filepath_from_src);
+    } else if (tag_handler == this.__SCRIPT_TAG_HANDLER) {
+      if ("src" in attrs) {
+        final_attrs = self.__getAttrsWithLink(attrs, "src", filepath_from_src);
+      } else {
+        return;
+      }
+    } else if (tag_handler == this.__STYLE_TAG_HANDLER) {
+      return;
+    } else if (tag_handler == this.__LINK_TAG_HANDLER) {
+      if (attrs["rel"] == "stylesheet") {
+        final_attrs = this.__getAttrsWithLink(
+          attrs,
+          "href",
+          filepath_from_src,
+          (no_var = true)
+        );
+      }
+      return None;
+    }
+    return final_attrs;
+  }
 }
