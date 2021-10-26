@@ -15,7 +15,7 @@ function get_parent_dir(path) {
         Location of the parent directory
   */
 
-  pdir = paths.dirname(path);
+  var pdir = paths.dirname(path);
   if (!pdir) {
     pdir = ".";
   }
@@ -61,7 +61,7 @@ function create_file(path) {
     RuntimeError
         Raised if file can't be created.
     */
-  pdir = get_parent_dir(path);
+  const pdir = get_parent_dir(path);
   try {
     fs.accessSync(pdir, fs.constants.W_OK);
     try {
@@ -94,7 +94,7 @@ function write_to_json_file(path, content) {
         Raised if not enough permissions to write in file
 */
   try {
-    fd = fs.accessSync(path, fs.constants.W_OK);
+    fs.accessSync(path, fs.constants.W_OK);
     try {
       fs.writeSync(fs.openSync(path, "w"), content);
     } catch {
