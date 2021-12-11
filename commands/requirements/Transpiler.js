@@ -663,5 +663,58 @@ class Transpiler {
     }
   }
 
+   __generateIndexJsContent(){
+    /*Generates content for index.js file in React codebase with handled routes
+
+        Returns
+        -------
+        str
+            Content for index.js file in React codebase
+    */
+   var router = 'import {\n BrowserRouter as Router,\n Switch, \nRoute \n} from "react-router-dom";'
+   var imports = []
+   var routes = []
+
+  for (const [key, value] of Object.entries(this.index_routes)){
+     var componentName = this.__getReactComponentName(value)
+     var importReact = 'import ' + componentName + ' from "' + value + '";'
+     imports.push(importReact)
+     var routeReact = '<Route path="/'+key+'">\n<'+componentName+'/>\n</Route>'
+     routes.push(routeReact)
+  }
+
+  imports = imports.join('/')
+  routes = routes.join('/')
+
+  return 'import React from "react";\n\
+        import ReactDOM from "react-dom";\n\
+        import * as serviceWorkerRegistration from ./serviceWorkerRegistration";\n\
+        import reportWebVitals from "./reportWebVitals";\n'+
+        router +
+        'import App from "./App";\n'+
+        imports+
+
+        'ReactDOM.render(\n\
+        <Router>\n\
+            <Switch>\n'+
+            routes+
+            '<Route path="/">\n\
+                <App />\n\
+            </Route>\n\
+            </Switch>\n\
+        </Router>,\n\
+        document.getElementById("root")\n\
+        );\n'+
+        '// If you dont want your app to work offline, you can change\n\
+        // register() to unregister() below. Note this comes with some\n\
+        // pitfalls. Learn more about service workers: https://cra.link/PWA\n\
+        serviceWorkerRegistration.register();\n\
+        // If you want to start measuring performance in your app, pass a\n\
+        // function to log results (for example: reportWebVitals(console.log))\n\
+        // or send to analytics endpoint. Learn more: https://bit.ly/CRA-vitals\n\
+        reportWebVitals();\n'
+  }
+
+
  
 }
