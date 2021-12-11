@@ -1,6 +1,8 @@
 const path = require("path");
 const fs = require("fs");
 const NodeWrapper = require("./NodeWrapper");
+var cheerio = require("cheerio");
+const fse = require("fs-extra");
 
 class AttributesParser {
   /*Extends HTMLParser to extract tags with attributes from a given HTML string
@@ -663,7 +665,7 @@ class Transpiler {
     }
   }
 
-   __generateIndexJsContent(){
+  __generateIndexJsContent(){
     /*Generates content for index.js file in React codebase with handled routes
 
         Returns
@@ -713,6 +715,98 @@ class Transpiler {
         // function to log results (for example: reportWebVitals(console.log))\n\
         // or send to analytics endpoint. Learn more: https://bit.ly/CRA-vitals\n\
         reportWebVitals();\n'
+  }
+
+  transpileFile(filepath){
+    /*Transpiles the source HTML file given at the given filepath
+      to a React code, which is then copied over to the React build
+      directory, if not HTML file then get's copied directly.
+
+      Parameters
+      ----------
+      filepath : str
+        Path to the source HTML file which is to be transpiled
+
+      Raises
+      ------
+      RuntimeError
+        Raised if the source html file is not found
+    */
+
+    components = filepath.split(path.sep);
+    index = components.indexOf("src");
+    file_name_with_extension = components.pop();
+    file_name_split = file_name_with_extension.split(".");
+    filenameWithNoExtension = file_name_split[0];
+    extension = file_name_split[1];
+    filePathFromSrc = components.slice(index + 1).join("/");
+
+    if (extension!="html"){
+      var dest_filepath = path.join(
+      this.dest_dir,
+      "src",
+      filePathFromSrc,
+      file_name_with_extension
+      );
+      if (this.verbose){
+        console.log("Copying file " + String(filepath) +" -> " + String(dest_filepath))
+      }
+      try{
+        fs.mkdirSync(path.dirname(dest_filepath), true);
+      }catch{
+        console.log("Error making a new directory")
+      }
+      fse.copyFileSync(filepath,dest_filepath);
+      return
+    }
+
+    var stats = fs.statSync(filepath);
+    if (stats || !stats.isFile()){throw (filepath+" file not found");}
+
+    var is_entry_point = false
+    var entry_point_html = path.join(this.src_dir, 'index.html')
+
+    if (entry_point_html==filepath){
+      is_entry_point = true
+      filenameWithNoExtension = "App"
+    }
+
+    file_name_with_extension = filenameWithNoExtension+".js";
+    stats = fs.statSync(path.join(this.dest_dir, 'src'));
+    if (stats || !stats.isDirectory()){
+      throw ("Looks like your React project didn't get \n\
+      created please check your " + this.dest_dir + " for a src \n\
+      folder")
+    }
+
+    dest_filepath = path.join(this.dest_dir, 'src', filePathFromSrc,file_name_with_extension)
+    if (this.verbose){console.log("Transpiling file " + String(filepath) +" -> " + String(dest_filepath))}
+
+    var htmlString = fs.readFileSync(filepath);
+    const $ = cheerio.load(htmlString);
+
+    // removing comments
+    $("html").contents().filter(function () {return this.type === "comment";}).remove();
+
+    try{fs.mkdirSync(path.dirname(dest_filepath), true);}
+    catch{console.log("Error making a new directory")}
+    filenameWithNoExtension= filenameWithNoExtension.charAt(0).toUpperCase() + filenameWithNoExtension.substring(1).toLowerCase();
+    var file_content = this.__generateReactFileContent($,filenameWithNoExtension,filePathFromSrc)
+    try {
+      var fd = fs.openSync(dest_filepath, "w");
+      try {
+        fs.close(fs.write(fd, file_content));
+      } catch {
+        throw new Error("Error writing file");
+      }
+    } catch {
+      throw new Error("File can not be reached at ", path);
+    }
+
+    NodeWrapper().prettify(path=dest_filepath)
+    if(!is_entry_point){
+      this.__addRoutesToIndexLinkArray(filePathFromSrc, filenameWithNoExtension)
+    }
   }
 
 
