@@ -1,8 +1,9 @@
-const path = require("path");
-const fs = require("fs");
-const NodeWrapper = require("./NodeWrapper");
+var path = require("path");
+var fs = require("fs");
+var NodeWrapper = require("./NodeWrapper");
 var cheerio = require("cheerio");
-const fse = require("fs-extra");
+var fse = require("fs-extra");
+var glob = require("glob")
 
 class AttributesParser {
   /*Extends HTMLParser to extract tags with attributes from a given HTML string
@@ -809,6 +810,43 @@ class Transpiler {
     }
   }
 
+  transpile_project(copy_static=true){
+  /*  Runs initial checks like ensuring the source
+        directories exist, and the source file is present.
+        After that, copies non html files and transpiles the source.
 
- 
+        Parameters
+        ----------
+        copy_static : bool, optional
+            Will copy non .html files if True, only .html files will be
+            transpiled if False, default True
+
+        Raises
+        ------
+        RuntimeError
+            Raised source html file is missing.
+  */
+
+    var entry_point_html = path.join(this.src_dir, 'index.html')
+    var stats = fs.statSync(entry_point_html);
+    if (stats || !stats.isFile()){
+      throw ("Entry point file doesn't exist at " +String(entry_point_html));
+    }
+    if(this.verbose){console.log("Transpiling files...")}
+    var filepaths = glob.sync(path.join("src", "**/**"));
+    for (var i = 0; i < filepaths.length; i++) {
+    var file = filepaths[i];
+      if (fs.statSync(file).isFile()) {
+        var components = file.split(path.sep);
+        var file_name_with_extension = components.pop();
+        var file_name_split = file_name_with_extension.split(".");
+        var extension = file_name_split[1];
+        if (extension == "html" || copy_static) {
+          this.transpileFile(file);
+        }
+    }
+  }
+    this.__rebuildIndexJs()
+  }
+
 }
