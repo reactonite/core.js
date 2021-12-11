@@ -1,7 +1,48 @@
-const HTMLParser = require("node-html-parser");
 const path = require("path");
 const fs = require("fs");
 const NodeWrapper = require("./NodeWrapper");
+
+class AttributesParser {
+  /*Extends HTMLParser to extract tags with attributes from a given HTML string
+
+    Call feed method of HTMLParser to generate data and then retriece it from
+    the object of the class. Here's an usage example:
+
+    attributes_parser = AttributesParser()
+    attributes_parser.feed("YOUR_HTML_STRING")
+    tag_with_attributes = attributes_parser.data
+    print(tag_with_attributes)
+
+    Attributes
+    ----------
+    data : list
+        Stores the tags with their attributes
+    */
+
+  handle_starttag(tag, attrs) {
+    /*Overrides the original handler for start tag and appends the tags to data.
+        Parameters
+        ----------
+        tag : str
+            Name of tag being parsed
+        attrs : list
+            List of attrs corresponding to the current tag
+    */
+    attrDict = {};
+    for (attr in attrs) {
+      attrDict[attr[0]] = attr[1];
+    }
+    try {
+      this.data.push({ tag: attrDict });
+    } catch {
+      this.data = [
+        {
+          tag: attrDict,
+        },
+      ];
+    }
+  }
+}
 
 class ReactCodeMapper {
   /*Class to convert tags and props from HTML to React
@@ -28,8 +69,8 @@ class ReactCodeMapper {
     add_variables : list
         Stores newly created variables during transpilation.
     router_link_imported : bool, optional
-        Saves wether Link tag needs to be imported for current page.
-    */
+        Saves whether Link tag needs to be imported for current page.
+  */
   constructor(src_dir, dest_dir, props_map) {
     this.src_dir = src_dir;
     this.dest_dir = dest_dir;
@@ -45,11 +86,11 @@ class ReactCodeMapper {
     this.__LINK_TAG_HANDLER = "LINK_TAG_HANDLER";
 
     this.CUSTOM_TAG_HANDLERS = {
-      a: self.__A_TAG_HANDLER,
-      img: self.__IMAGE_TAG_HANDLER,
-      script: self.__SCRIPT_TAG_HANDLER,
-      style: self.__STYLE_TAG_HANDLER,
-      link: self.__LINK_TAG_HANDLER,
+      a=this.__A_TAG_HANDLER,
+      img=this.__IMAGE_TAG_HANDLER,
+      script=this.__SCRIPT_TAG_HANDLER,
+      style=this.__STYLE_TAG_HANDLER,
+      link=this.__LINK_TAG_HANDLER,
     };
   }
 
@@ -78,30 +119,30 @@ class ReactCodeMapper {
     return varName;
   }
 
-  __getLinkInfo(self, link, filepath_from_src, no_var = false) {
+  __getLinkInfo(link, filepath_from_src, no_var = false) {
     /*Generates link information.
 
-        If link is internal corresponding variable name is generated, for
-        external link it is returned.
+    If link is internal corresponding variable name is generated, for
+    external link it is returned.
 
-        Parameters
-        ----------
-        link : str
-            Link for filepath or external link.
-        filepath_from_src : str
-            Path to file from src.
-        no_var : bool, optional
-            To generate import variable or just import file, default is False
-            i.e. generate variable
+    Parameters
+    ----------
+    link : str
+      Link for filepath or external link.
+    filepath_from_src : str
+      Path to file from src.
+    no_var : bool, optional
+      To generate import variable or just import file, default is False
+      i.e. generate variable
 
-        Returns
-        -------
-        str
-            Variable name generated from link or link in external case.
+    Returns
+    -------
+    str
+        Variable name generated from link or link in external case.
   */
 
     if (link) {
-      pathToLink = path.join(self.src_dir, filepath_from_src, link);
+      pathToLink = path.join(this.src_dir, filepath_from_src, link);
       pathToIndexLink = path.join(pathToLink, "index.html");
       stats_pathToLink = fs.statSync(pathToLink);
       stats_pathToIndexLink = fs.statSync(pathToIndexLink);
@@ -109,7 +150,7 @@ class ReactCodeMapper {
         var_ = this.__getSafeName(link);
         if (no_var) {
           this.add_to_import.push("import " + link);
-          return "@";
+          return undefined;
         } else {
           this.add_to_import.push("import " + var_ + " from " + link);
         }
@@ -121,7 +162,7 @@ class ReactCodeMapper {
     }
   }
 
-  __getAttrsWithLink(attrs, linkAttr, filepath_from_src, no_var = False) {
+  __getAttrsWithLink(attrs, linkAttr, filepath_from_src, no_var = false) {
     /*
     Generates attrs for tags having links to other files.
 
@@ -147,15 +188,15 @@ class ReactCodeMapper {
         Final dictonary of attributes with link handled     
  */
     final_attrs = {};
-    for (const [key, value] of Object.entries(final_attrs)) {
+    for (const [key, value] of Object.entries(attrs)) {
       if (key == linkAttr) {
         link_info = this.__getLinkInfo(value, filepath_from_src, no_var);
-        if (link_info == "@") {
+        if (link_info == undefined) {
           return;
         }
         final_attrs[linkAttr] = link_info;
       } else {
-        final_attrs[key] = attrs[key];
+        final_attrs[key] =value;
       }
     }
     return final_attrs;
@@ -164,8 +205,8 @@ class ReactCodeMapper {
   __getAttrsForRouterLink(attrs, filepath_from_src) {
     /*Generates attrs for A tag having links to other files.
 
-    If link is internal that is checked and also link is generated is
-    generated, for external link it is returned.
+    If link is internal that is checked and also link is generated, 
+    for external link it is returned.
 
     Parameters
     ----------
@@ -183,9 +224,9 @@ class ReactCodeMapper {
 
     final_attrs = {};
     is_internal = false;
-    for (const [key, value] of Object.entries(final_attrs)) {
+    for (const [key, value] of Object.entries(attrs)) {
       if (key == "href") {
-        href_info = attrs[key];
+        href_info = value;
         pathRef = path.join(this.src_dir, filepath_from_src, href_info);
         pathRefIndex = path.join(
           this.src_dir,
@@ -208,7 +249,7 @@ class ReactCodeMapper {
           final_attrs["href"] = href_info;
         }
       } else {
-        final_attrs[key] = attrs[key];
+        final_attrs[key] = value;
       }
     }
     return [final_attrs, is_internal];
@@ -244,12 +285,12 @@ class ReactCodeMapper {
       final_attrs = this.__getAttrsWithLink(attrs, "src", filepath_from_src);
     } else if (tag_handler == this.__SCRIPT_TAG_HANDLER) {
       if ("src" in attrs) {
-        final_attrs = self.__getAttrsWithLink(attrs, "src", filepath_from_src);
+        final_attrs = this.__getAttrsWithLink(attrs, "src", filepath_from_src);
       } else {
-        return;
+        return undefined;
       }
     } else if (tag_handler == this.__STYLE_TAG_HANDLER) {
-      return;
+      return undefined;
     } else if (tag_handler == this.__LINK_TAG_HANDLER) {
       if (attrs["rel"] == "stylesheet") {
         final_attrs = this.__getAttrsWithLink(
@@ -279,7 +320,7 @@ class ReactCodeMapper {
             Attributes in React format
     */
     final_attrs = {};
-    for (const [key, value] of Object.entries(final_attrs)) {
+    for (const [key, value] of Object.entries(attrs)) {
       if (key == "style") {
         continue;
       }
@@ -291,13 +332,13 @@ class ReactCodeMapper {
       } else {
         useKey = key;
       }
-      final_attrs[useKey] = attrs[key];
+      final_attrs[useKey] = value;
     }
     return final_attrs;
   }
 
   getReactMap(tags, filepath_from_src) {
-    /*Wrapper to generate React Map object comprising of all data needed
+    /*  Wrapper to generate React Map object comprising of all data needed
         to convert HTML to React
 
         Parameters
@@ -326,8 +367,10 @@ class ReactCodeMapper {
           this.CUSTOM_TAG_HANDLERS[tag_name],
           filepath_from_src
         );
-        final_map["tags"].push({ tag_name: attrs });
       }
+      var tag_name_attributes = {};
+      tag_name_attributes[tag_name] = attrs;
+      final_map["tags"].push(tag_name_attributes);
     }
     final_map["imports"] = this.add_to_import.join("\n");
     final_map["variables"] = this.add_variables;
@@ -394,7 +437,7 @@ class Transpiler {
       this.dest_dir = path.join(".", this.project_name, this.dest_dir);
     }
 
-    npm = new NodeWrapper();
+    const npm = new NodeWrapper();
 
     if (!fs.existsSync(path.join(".", this.src_dir))) {
       throw Error("Source directory doesn't exist at  " + String(this.src_dir));
@@ -402,7 +445,7 @@ class Transpiler {
 
     if (!fs.existsSync(path.join(".", this.dest_dir))) {
       if (create_project) {
-        project_dir = path.join(".", this.project_name);
+        const project_dir = path.join(".", this.project_name);
         npm.create_react_app(
           (project_name = this.project_name),
           (working_dir = project_dir),
@@ -424,6 +467,123 @@ class Transpiler {
         (working_dir = this.dest_dir)
       );
     }
+  }
+
+  __replaceAttrs($, tag_name, or_attrs, f_attrs) {
+    /*Replaces the attrs for updated tags comparing original and final attrs.
+
+        Parameters
+        ----------
+        $ : Cheerio
+            passed by reference.
+        tag_name : str
+            Name of tag being worked upon.
+        or_attrs : dict
+            Dictonary consisting of original attributes of HTML.
+        f_attrs : dict
+            Dictonary consisting of final attributes for React.
+   */
+    if (or_attrs == f_attrs) {
+      return;
+    }
+    
+    const selector = $(this.__getTagWithAttribute(tag_name,or_attrs));
+    var htmlTag = selector.first().attr();
+    upperAttrs = {};
+    lowerAttrs = {};
+
+    if (htmlTag == undefined) {
+      for (const [attr] of Object.entries(or_attrs)) {
+        upperAttrs[attr] = or_attrs[attr].toUpperCase();
+        lowerAttrs[attr] = or_attrs[attr].toLowerCase();
+      }
+      htmlTag = $(this.__getTagWithAttribute(tag_name,upperAttrs)).first().attr();
+      if (htmlTag == undefined) {
+        htmlTag = $(this.__getTagWithAttribute(tag_name,lowerAttrs)).first().attr();
+      }
+    }
+    if (htmlTag != undefined) {
+      $(htmlTag.first().attr(f_attrs));
+      if (tag_name == "a" && "to" in f_attrs){
+          $(htmlTag.first().get(0).tagName = "Link")
+      }
+    }
+  }
+
+  __getTagWithAttribute(tag_name,attrs){
+    var tag_with_attr = tag_name
+    for (const [key, value] of Object.entries(attrs)){
+      tag_with_attr=tag_with_attr+'[' +key+'="'+value+'"]'
+    }
+    return tag_with_attr
+  }
+
+  __deleteTag($, tag_name, attrs){
+    /*Deletes the tag corresponding to given tag_name and attrs.
+    Parameters
+    ----------
+     $ : Cheerio
+        passed by reference.
+    tag_name : str
+        Name of tag being worked upon.
+    attrs : dict
+        Dictonary consisting of original attributes of HTML.
+    */
+    const selector = $(this.__getTagWithAttribute(tag_name,attrs));
+    var htmlTag = selector.first().attr();
+    upperAttrs = {}
+    lowerAttrs = {}
+    if (htmlTag == undefined) {
+      for (const [attr] of Object.entries(attrs)) {
+      upperAttrs[attr] = attrs[attr].toUpperCase();
+      lowerAttrs[attr] = attrs[attr].toLowerCase();
+    }
+    htmlTag = $(this.__getTagWithAttribute(tag_name,upperAttrs)).first().attr();
+    if (htmlTag == undefined) {
+      htmlTag = $(this.__getTagWithAttribute(tag_name,lowerAttrs)).first().attr();
+    }
+    }
+    if (htmlTag != undefined) {
+      htmlTag.remove();
+    }
+  }
+
+   __generateReactFileContent($, function_name, filepath_from_src){
+    /*Generates React code from HTML soup object.
+
+        Parameters
+        ----------
+        $ : Cheerio
+            passed by reference.
+        function_name : str
+            Function name to be used from filename without extension with
+            first letter capitalized
+        filepath_from_src : str
+            Path to file from src directory
+
+        Returns
+        -------
+        str
+            Content for React file.
+    */
+    styleTags = [];
+    $("style").each((i, el) => {styleTags.push($(el).toString());});
+    scriptTags = [];
+    $("script").each((i, el) => {
+      var s = $(el).toString();
+      if (!s.includes("src")) {scriptTags.push(s);}
+    });
+
+    //Attribute parser code
+
+    var reactCodeMapper = new ReactCodeMapper(this.src_dir, this.dest_dir, this.props_map)
+    var react_map = reactCodeMapper.getReactMap(tag_with_attributes, filepath_from_src)
+    var final_tags = react_map['tags']
+    var react_variables = react_map['variables']
+    
+
+
+    
   }
 
   __getReactComponentName(link) {
@@ -450,4 +610,58 @@ class Transpiler {
     }
     return "REACTONITE" + varName.toUpperCase();
   }
+
+  __rebuildIndexJs() {
+    /*Generates the index.js for React apps entry point, needed to handle
+        links to pages
+
+        Raises
+        ------
+        RuntimeError
+            Raised if the index.js file is not found in dest_dir
+    */
+    pathToIndexJs = path.join(this.dest_dir, "src", "index.js");
+    if (!fs.statSync(pathToIndexJs)) {
+      throw new Error(
+        "Looks like you are missing index.js file in \
+                React directory! It seems to be an NPM/React issue rather."
+      );
+    }
+    fs.open(path, "w", function (err, fd) {
+      if (err) {
+        throw "Error opening the file" + err;
+      }
+      file_content = this.__generateIndexJsContent();
+      fs.write(fd, file_content, 0, file_content.length, null, function (err) {
+        if (err) {
+          throw "Error writing file: " + err;
+        }
+      });
+    });
+    NodeWrapper().prettify((path = pathToIndexJs));
+  }
+
+  __addRoutesToIndexLinkArray(filePathFromSrc, filenameNoExt) {
+    /*Adds links to this.index_routes to be used in index.js generation
+
+        Parameters
+        ----------
+        filePathFromSrc : str
+            Path to the folder where file is in dest_dir folder from src
+        filenameNoExt : str
+            Filename with no extension
+    */
+
+    if (filenameNoExt == "index") {
+      htmlPath = path.normalize(filePathFromSrc);
+      jsPath = htmlPath.split(path.sep).join("./");
+      this.index_routes[jsPath] = "./" + jsPath + "/index";
+    } else {
+      htmlPath = path.normalize(path.join(filePathFromSrc, filenameNoExt));
+      jsPath = htmlPath.split(path.sep).join("./");
+      this.index_routes[jsPath] = "./" + jsPath;
+    }
+  }
+
+ 
 }
