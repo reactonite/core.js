@@ -1,9 +1,8 @@
-var path = require("path");
-var fs = require("fs");
-var NodeWrapper = require("./NodeWrapper");
+const path = require("path");
+const fs = require("fs");
+const NodeWrapper = require("./NodeWrapper");
 var cheerio = require("cheerio");
-var fse = require("fs-extra");
-var glob = require("glob")
+const fse = require("fs-extra");
 
 class AttributesParser {
   /*Extends HTMLParser to extract tags with attributes from a given HTML string
@@ -551,6 +550,32 @@ class Transpiler {
     }
   }
 
+  get_tags_with_attributes(tag_arr) {
+  let data = [];
+  for (let i = 0; i < tag_arr.length; i++) {
+    let tag_with_attrs = tag_arr[i].split(" ");
+    let len = tag_with_attrs.length;
+    tag_with_attrs[0] = tag_with_attrs[0].substring(1);
+    tag_with_attrs[len - 1] = tag_with_attrs[len - 1].substring(
+      0,
+      tag_with_attrs[len - 1].length - 1
+    );
+
+    let tag = tag_with_attrs[0];
+    let attrs = {};
+    for (let j = 1; j < tag_with_attrs.length; j++) {
+      let attr_name_value = tag_with_attrs[j].split("=");
+      let attr_name = attr_name_value[0];
+      let attr_value = attr_name_value[1];
+      attrs[attr_name] = attr_value;
+    }
+    tag_attr = {};
+    tag_attr[tag] = attrs;
+    data.push(tag_attr);
+  }
+  return data;
+}
+
    __generateReactFileContent($, function_name, filepath_from_src){
     /*Generates React code from HTML soup object.
 
@@ -577,16 +602,94 @@ class Transpiler {
       if (!s.includes("src")) {scriptTags.push(s);}
     });
 
-    //Attribute parser code
+    let arr = $.html().match(/\<(.*?)\>/g);
+    arr.shift();
+    let tag_arr = arr.filter((item) => !item.startsWith("</"));
+    let tag_with_attributes=this.get_tags_with_attributes(tag_arr)
 
-    var reactCodeMapper = new ReactCodeMapper(this.src_dir, this.dest_dir, this.props_map)
-    var react_map = reactCodeMapper.getReactMap(tag_with_attributes, filepath_from_src)
-    var final_tags = react_map['tags']
-    var react_variables = react_map['variables']
+    let reactCodeMapper = new ReactCodeMapper(this.src_dir, this.dest_dir, this.props_map)
+    let react_map = reactCodeMapper.getReactMap(tag_with_attributes, filepath_from_src)
+    let final_tags = react_map['tags']
+    let react_variables = react_map['variables']
+    for (let i = 0;i < Math.min(tag_with_attributes.length, final_tags.length);i++){
+      let orignal_tag_dict = tag_with_attributes[i];
+      let final_tag_dict = final_tags[i];
+
+      let or_tag_name = Object.keys(orignal_tag_dict)[0];
+      let or_attrs = orignal_tag_dict[or_tag_name];
+
+      let final_tag_name = Object.keys(final_tag_dict)[0];
+      let final_attrs = final_tag_dict[final_tag_name];
+
+      if (or_tag_name == final_tag_name) {
+        if (final_attrs == undefined) {
+          this.__deleteTag($, or_tag_name, or_attrs);
+        } else {
+          this.__replaceAttrs($, or_tag_name, or_attrs, final_attrs);
+        }
+      } else {
+        throw "There's an error in processing " + or_tag_name;
+      }
+    }
     
+    let reactHead = undefined
+    if ($.html().toString().includes("<head>")){
+      head_str = $("head").toString();
+      $("head").first().get(0).tagName = "Helmet";
+      reactHead = head_str.replace(new RegExp("head", "g"), "Helmet");
+    }else{
+      if (styleTags.length>0){
+        $("html").append("<New_Tag></New_Tag>");
+        reactHead=$("new_tag").first().get(0).tagName = "Helmet"; 
+      }
+    }
 
-
+    reacthead_start = reactHead.substring(0, reactHead.length - 9);
+    if (styleTags.length > 0){
+    for (let i = 0; i < styleTags.length; i++) {reacthead_start += styleTags[i];}
+    reactHead = reacthead_start + "</Helmet>";}
     
+    let body_str = "";
+    $("body").each((i, el) => {body_str += $(el).toString();});
+    body_str = body_str.substring(6,body_str.length-7)
+    let content_str=""
+    if (reactHead){
+      content_str = reactHead+body_str
+      react_map['imports'] +="import Helmet from 'react-helmet';"
+    }else{
+      content_str = reactHead+body_str
+    }
+
+    for(let j=0;j<react_variables.length;j++){
+      variable = react_variables[j]
+      content_str=content_str.replace(new RegExp('"{'+variable+'}"',"g"),'{'+variable+'}');
+    }
+
+    let useEffect = ""
+    if (scriptTags.length){
+      react_map['imports'] += "import React, { useEffect } from 'react';"
+      let scriptContent = ""
+      $("script").each((i, el) => {
+        let script_str = $(el).toString();
+        let script_sub_str=script_str.substring(8,script_str.length-9);
+        scriptContent += script_sub_str
+      });              
+      useEffect = "useEffect(() => {" + scriptContent + "}, []);"
+    }else{
+      react_map['imports'] += "import React from 'react';"
+      useEffect = ""
+    }
+
+    if (styleTags.length>0){
+      content_str.replace(new RegExp("<style","g"),"<style>{`");
+      content_str.replace(new RegExp("</style>","g"),"`}</style>");
+    }
+    
+    let react_function = "function " + function_name + "() {  " + useEffect + "  return (<>" + content_str + "</>);}"
+    return "\n"+
+    react_map['imports']+"\n\n"+
+    react_function+"\n\n"+
+    "export default" +function_name;  
   }
 
   __getReactComponentName(link) {
@@ -811,7 +914,7 @@ class Transpiler {
   }
 
   transpile_project(copy_static=true){
-  /*  Runs initial checks like ensuring the source
+    /*  Runs initial checks like ensuring the source
         directories exist, and the source file is present.
         After that, copies non html files and transpiles the source.
 
@@ -825,7 +928,7 @@ class Transpiler {
         ------
         RuntimeError
             Raised source html file is missing.
-  */
+    */
 
     var entry_point_html = path.join(this.src_dir, 'index.html')
     var stats = fs.statSync(entry_point_html);
@@ -847,6 +950,5 @@ class Transpiler {
     }
   }
     this.__rebuildIndexJs()
-  }
-
+}
 }
