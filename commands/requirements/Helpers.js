@@ -1,20 +1,12 @@
 const paths = require("path");
 const fs = require("fs");
 
+/**
+ *Returns location of the parent directory for a given path.
+ * @param {string} path Path of the file or folder for which we need the parent directory.
+ * @returns {string} Location of the parent directory for a given path
+ */
 function get_parent_dir(path) {
-  /*Returns location of the parent directory for a given path.
-
-    Parameters
-    ----------
-    path : str
-        Path of the file or folder for which we need the parent directory.
-
-    Returns
-    -------
-    str
-        Location of the parent directory
-  */
-
   var pdir = paths.dirname(path);
   if (!pdir) {
     pdir = ".";
@@ -22,20 +14,12 @@ function get_parent_dir(path) {
   return pdir;
 }
 
+/**
+ * Creates directory at the given path if it doesn't exist.
+ * @param {string} path Path to directory which needs to be created.
+ * @throws {RuntimeError} Error Raised if directory can't be created.
+ */
 function create_dir(path) {
-  /*Creates directory at the given path if it doesn't exist.
-
-    Parameters
-    ----------
-    path : str
-        Path to directory which needs to be created.
-
-    Raises
-    ------
-    RuntimeError
-        Raised if directory can't be created.
-  */
-
   const path_exists = fs.existsSync(path);
   if (path_exists && fs.statSync(path).isDirectory()) {
     console.log(path + " already exists. Skipping.");
@@ -48,19 +32,12 @@ function create_dir(path) {
   }
 }
 
+/**
+ * Creates the file at the given path if it doesn't exist.
+ * @param {string} path Path to file which needs to be created.
+ * @throws {RuntimeError} Error Raised if file can't be created.
+ */
 function create_file(path) {
-  /*Creates the file at the given path if it doesn't exist.
-
-    Parameters
-    ----------
-    path : str
-        Path to file which needs to be created.
-
-    Raises
-    ------
-    RuntimeError
-        Raised if file can't be created.
-    */
   const pdir = get_parent_dir(path);
   try {
     fs.accessSync(pdir, fs.constants.W_OK);
@@ -74,25 +51,16 @@ function create_file(path) {
   }
 }
 
+/**
+ *Writes content to a json file at the given path. Raises
+  exception if file not exists.
+ * @param {string} path Path to file where content will be dumped.
+ * @param {object} content Object to be dumped into the file.
+ * @throws {FileNotFoundError}  Raised if file doesn't exist.
+ * @throws {RuntimeError} Raised if not enough permissions to write in file
+ */
+
 function write_to_json_file(path, content) {
-  /*
-    Writes content to a json file at the given path. Raises
-    exception if file not exists.
-
-    Parameters
-    ----------
-    path : str
-        Path to file where content will be dumped.
-    content : dict
-        Dictonary to be dumped into the file.
-
-    Raises
-    ------
-    FileNotFoundError
-        Raised if file doesn't exist.
-    RuntimeError
-        Raised if not enough permissions to write in file
-*/
   try {
     fs.accessSync(path, fs.constants.W_OK);
     try {
