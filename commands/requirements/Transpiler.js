@@ -4,50 +4,10 @@ const NodeWrapper = require("./NodeWrapper");
 var cheerio = require("cheerio");
 const fse = require("fs-extra");
 
-class AttributesParser {
-  /*Extends HTMLParser to extract tags with attributes from a given HTML string
-
-    Call feed method of HTMLParser to generate data and then retriece it from
-    the object of the class. Here's an usage example:
-
-    attributes_parser = AttributesParser()
-    attributes_parser.feed("YOUR_HTML_STRING")
-    tag_with_attributes = attributes_parser.data
-    print(tag_with_attributes)
-
-    Attributes
-    ----------
-    data : list
-        Stores the tags with their attributes
-    */
-
-  handle_starttag(tag, attrs) {
-    /*Overrides the original handler for start tag and appends the tags to data.
-        Parameters
-        ----------
-        tag : str
-            Name of tag being parsed
-        attrs : list
-            List of attrs corresponding to the current tag
-    */
-    attrDict = {};
-    for (attr in attrs) {
-      attrDict[attr[0]] = attr[1];
-    }
-    try {
-      this.data.push({ tag: attrDict });
-    } catch {
-      this.data = [
-        {
-          tag: attrDict,
-        },
-      ];
-    }
-  }
-}
-
 class ReactCodeMapper {
-  /*Class to convert tags and props from HTML to React
+ 
+  /**
+   * Class to convert tags and props from HTML to React
 
     Call getReactMap method for converting tags fed for HTML and get
     corresponding React Mapping. Here's an usage example:
@@ -55,24 +15,18 @@ class ReactCodeMapper {
     reactCodeMapper = ReactCodeMapper(source_dir, destination_dir, props_map)
     react_map = reactCodeMapper.getReactMap(tag_with_attributes)
     print(react_map)
+   * @property {object} CUSTOM_TAG_HANDLERS Stores mapping correspoding to tags which are handled seperately.
+   * @property {string} src_dir Source directory for the HTML codebase.
+   * @property {string} dest_dir Destination directory for the React codebase.
+   * @property {object} props_map Mapping of attrs for HTML to React from props_map.js
+   * @property {string[]} add_to_import imports corresponding to variables created during transpilation.
+   * @property {string[]} add_variables Stores newly created variables during transpilation.
+   * @property {boolean} router_link_imported Saves wether Link tag needs to be imported for current page.
+   * @param {string} src_dir Source directory for the HTML codebase.
+   * @param {string} dest_dir Destination directory for the React codebase.
+   * @param {string} props_map Mapping of attrs for HTML to React from props_map.py
+   */
 
-    Attributes
-    ----------
-    CUSTOM_TAG_HANDLERS : dict
-        Stores mapping correspoding to tags which are handled seperately.
-    src_dir : str
-        Source directory for the HTML codebase.
-    dest_dir : str
-        Destination directory for the React codebase.
-    props_map : dict
-        Mapping of attrs for HTML to React from props_map.py
-    add_to_import : list
-        Stores imports corresponding to variables created during transpilation.
-    add_variables : list
-        Stores newly created variables during transpilation.
-    router_link_imported : bool, optional
-        Saves whether Link tag needs to be imported for current page.
-  */
   constructor(src_dir, dest_dir, props_map) {
     this.src_dir = src_dir;
     this.dest_dir = dest_dir;
@@ -96,19 +50,12 @@ class ReactCodeMapper {
     };
   }
 
+  /**
+   * Generates safe name for varibale from path to file.
+   * @param {string} link Path to file for which varibale is created.
+   * @returns {string} Variable name generated from link
+   */
   __getSafeName(link) {
-    /*Generates safe name for varibale from path to file.
-
-        Parameters
-        ----------
-        link : str
-            Path to file for which varibale is created.
-
-        Returns
-        -------
-        str
-            Variable name generated from link
-  */
     varName = "";
     var regex = /^[0-9a-z]+$/;
     for (ch in link) {
@@ -121,28 +68,16 @@ class ReactCodeMapper {
     return varName;
   }
 
-  __getLinkInfo(link, filepath_from_src, no_var = false) {
-    /*Generates link information.
-
+  /**
+   * Generates link information.
     If link is internal corresponding variable name is generated, for
     external link it is returned.
-
-    Parameters
-    ----------
-    link : str
-      Link for filepath or external link.
-    filepath_from_src : str
-      Path to file from src.
-    no_var : bool, optional
-      To generate import variable or just import file, default is False
-      i.e. generate variable
-
-    Returns
-    -------
-    str
-        Variable name generated from link or link in external case.
-  */
-
+   * @param {string} link Link for filepath or external link.
+   * @param {string} filepath_from_src Path to file from src.
+   * @param {boolean} no_var To generate import variable or just import file, default is False i.e. generate variable
+   * @returns {string} Variable name generated from link or link in external case.
+   */
+  __getLinkInfo(link, filepath_from_src, no_var = false) {
     if (link) {
       pathToLink = path.join(this.src_dir, filepath_from_src, link);
       pathToIndexLink = path.join(pathToLink, "index.html");
@@ -164,31 +99,19 @@ class ReactCodeMapper {
     }
   }
 
-  __getAttrsWithLink(attrs, linkAttr, filepath_from_src, no_var = false) {
-    /*
-    Generates attrs for tags having links to other files.
-
+/**
+ * Generates attrs for tags having links to other files.
     If link is internal corresponding variable name is generated, for
     external link it is returned.
 
-    Parameters
-    ----------
-    attrs : dict
-        Attributes of tag to be worked upon.
-    linkAttr : str
-        Name of attr that correspond to link of file, example 'src' in
-        case of script tag
-    filepath_from_src : str
-        Path to file from src directory.
-    no_var : bool, optional
-        To generate import variable or just import file, default is False
-        i.e. generate variable
-
-    Returns
-    -------
-    dict
-        Final dictonary of attributes with link handled     
+ * @param {object} attrs Attributes of tag to be worked upon.
+ * @param {string} linkAttr Name of attr that correspond to link of file, example 'src' in case of script tag
+ * @param {string} filepath_from_src Path to file from src directory.
+ * @param {boolean} no_var To generate import variable or just import file, default is False i.e. generate variable
+ * @returns {object} Final dictonary of attributes with link handled     
  */
+  __getAttrsWithLink(attrs, linkAttr, filepath_from_src, no_var = false) {
+
     final_attrs = {};
     for (const [key, value] of Object.entries(attrs)) {
       if (key == linkAttr) {
@@ -204,25 +127,17 @@ class ReactCodeMapper {
     return final_attrs;
   }
 
+
+ /**
+   *Generates attrs for A tag having links to other files. 
+      If link is internal that is checked and also link is generated is
+      generated, for external link it is returned.
+
+   * @param {object} attrs Attributes of tag to be worked upon.
+   * @param {string} filepath_from_src Path to file from src directory.
+   * @returns {string[]} Array of final dictonary of attributes with link handled and information about internal link
+   */
   __getAttrsForRouterLink(attrs, filepath_from_src) {
-    /*Generates attrs for A tag having links to other files.
-
-    If link is internal that is checked and also link is generated, 
-    for external link it is returned.
-
-    Parameters
-    ----------
-    attrs : dict
-        Attributes of tag to be worked upon.
-    filepath_from_src : str
-        Path to file from src directory.
-
-    Returns
-    -------
-    tuple
-        Tuple of final dictonary of attributes with link handled and
-        information about internal link
-    */
 
     final_attrs = {};
     is_internal = false;
@@ -257,30 +172,21 @@ class ReactCodeMapper {
     return [final_attrs, is_internal];
   }
 
-  __customTagAttrsHandler(attrs, tag_handler, filepath_from_src, link) {
-    /*Custom tag and attributes handler for parsing attrs from CUSTOM_TAG_HANDLERS
-
-        Parameters
-        ----------
-        attrs : dict
-            Attributes for corresponding tag needed to be handled
-        tag_handler : str
-            Tag handler type to be used in mapping
-        filepath_from_src : str
-            Path to file from src directory
-
-        Returns
-        -------
-        dict
-            Final attributes for that tag, if None is returned delete the tag
-      */
+  /**
+   * Custom tag and attributes handler for parsing attrs from CUSTOM_TAG_HANDLERS
+   * @param {object} attrs Attributes for corresponding tag needed to be handled
+   * @param {string} tag_handler Tag handler type to be used in mapping
+   * @param {string} filepath_from_src Path to file from src directory
+   * @returns {object} Final attributes for that tag, if None is returned delete the tag
+   */
+  __customTagAttrsHandler(attrs, tag_handler, filepath_from_src) {
     final_attrs = {};
     if (tag_handler == this.__A_TAG_HANDLER) {
       res = this.__getAttrsForRouterLink(attrs, filepath_from_src);
       final_attrs = res[0];
       is_internal_link = res[1];
       if (!this.router_link_imported && is_internal_link) {
-        this.add_to_import.push("import " + link + ' from "react-router-dom";');
+        this.add_to_import.push('import Link from "react-router-dom";');
         this.router_link_imported = true;
       }
     } else if (tag_handler == this.IMAGE_TAG_HANDLER) {
@@ -307,20 +213,12 @@ class ReactCodeMapper {
     return final_attrs;
   }
 
+  /**
+   * Generates renamed attributes correspoding to React, and removes inline style tags and tags starting with on like onclick etc.
+   * @param {object} attrs Attributes in HTML format
+   * @returns {object} Attributes in React format
+   */
   __getReactAttrs(attrs) {
-    /*Generates renamed attributes correspoding to React, and removes
-        inline style tags and tags starting with on like onclick etc.
-
-        Parameters
-        ----------
-        attrs : dict
-            Attributes in HTML format
-
-        Returns
-        -------
-        dict
-            Attributes in React format
-    */
     final_attrs = {};
     for (const [key, value] of Object.entries(attrs)) {
       if (key == "style") {
@@ -339,23 +237,15 @@ class ReactCodeMapper {
     return final_attrs;
   }
 
+  /**
+   *Wrapper to generate React Map object comprising of all data needed
+      to convert HTML to React
+   * @param {object} tags HTML attributes extracted using AttributesParser
+   * @param {string} filepath_from_src Path to file from src directory
+   * @returns {object} Final mapping of tags with imports and varibles for React, if any
+                        attribute is None then tag needs to be deleted
+   */
   getReactMap(tags, filepath_from_src) {
-    /*  Wrapper to generate React Map object comprising of all data needed
-        to convert HTML to React
-
-        Parameters
-        ----------
-        tags : dict
-            HTML attributes extracted using AttributesParser
-        filepath_from_src : str
-            Path to file from src directory
-
-        Returns
-        -------
-        dict
-            Final mapping of tags with imports and varibles for React, if any
-            attribute is None then tag needs to be deleted
-    */
     final_map = {
       imports: [],
       tags: [],
@@ -381,24 +271,19 @@ class ReactCodeMapper {
 }
 
 class Transpiler {
-  /*Transpiler responsible for translating HTML code to React
-
-    Attributes
-    ----------
-    project_name : str
-        Name of the project as stored in config
-    src_dir : str
-        Path of the source directory within the project directory
-    dest_dir : str
-        Path to the transpiled React app within the project directory
-    index_routes : dict
-        Stores Routes data corresponding to different pages for index.js
-    parser : str, optional
-        Specify which parser to use for reading HTML files, defaults
-        to "html.parser"
-    verbose : bool, optional
-        Specify the verbosity of the transpiler, defaults to False
-    */
+   /**
+   * Transpiler responsible for translating HTML code to React
+   * @property {string} project_name Name of the project as stored in config
+   * @property {string} src_dir Source directory for the HTML codebase.
+   * @property {string} dest_dir Destination directory for the React codebase.
+   * @property {object} index_routes Stores Routes data corresponding to different pages for index.js
+   *
+   * @param {object} config_settings project_name, src_dir, dest_dir as dict object stored in config.json
+   * @param {object} props_map Mapping of props for HTML to React used during transpilation
+   * @param {boolean} verbose Specify the verbosity of the transpiler, deafults to False
+   * @param {boolean} create_project Set to True if create project is calling method, deafults to False
+   * @throws {RunTimeError}  Error raised if the config_settings point to non existing dirs.
+   */
 
   constructor(
     config_settings,
@@ -406,25 +291,6 @@ class Transpiler {
     verbose = false,
     create_project = false
   ) {
-    /*Transpiler initiator takes config settings and unpacks variables.
-
-        Parameters
-        ----------
-        config_settings : dict
-            project_name, src_dir, dest_dir as dict object stored
-            in config.json
-        props_map : dict
-            Mapping of props for HTML to React used during transpilation
-        verbose : bool, optional
-            Specify the verbosity of the transpiler, deafults to False
-        create_project : bool, optional
-            Set to True if create project is calling method, deafults to False
-
-        Raises
-        ------
-        RuntimeError
-            Raised if the config_settings point to non existing dirs.
-    */
 
     this.project_name = config_settings["project_name"];
     this.src_dir = config_settings["src_dir"];
@@ -471,20 +337,15 @@ class Transpiler {
     }
   }
 
-  __replaceAttrs($, tag_name, or_attrs, f_attrs) {
-    /*Replaces the attrs for updated tags comparing original and final attrs.
-
-        Parameters
-        ----------
-        $ : Cheerio
-            passed by reference.
-        tag_name : str
-            Name of tag being worked upon.
-        or_attrs : dict
-            Dictonary consisting of original attributes of HTML.
-        f_attrs : dict
-            Dictonary consisting of final attributes for React.
+  /**
+   * Replaces the attrs for updated tags comparing original and final attrs.
+   * @param {cheerio} $ Cheerio passed by reference
+   * @param {string} tag_name Name of tag being worked upon.
+   * @param {object} or_attrs Objectconsisting of original attributes of HTML.
+   * @param {object} f_attrs Object consisting of final attributes for React.
    */
+  
+  __replaceAttrs($, tag_name, or_attrs, f_attrs) {
     if (or_attrs == f_attrs) {
       return;
     }
@@ -520,17 +381,14 @@ class Transpiler {
     return tag_with_attr
   }
 
-  __deleteTag($, tag_name, attrs){
-    /*Deletes the tag corresponding to given tag_name and attrs.
+  /**
+   * Deletes the tag corresponding to given tag_name and attrs.
     Parameters
-    ----------
-     $ : Cheerio
-        passed by reference.
-    tag_name : str
-        Name of tag being worked upon.
-    attrs : dict
-        Dictonary consisting of original attributes of HTML.
-    */
+   * @param {cheerio} $ cheerio passed by reference
+   * @param {string} tag_name Name of tag being worked upon.
+   * @param {object} attrs Dictonary consisting of original attributes of HTML.
+   */
+  __deleteTag($, tag_name, attrs){
     const selector = $(this.__getTagWithAttribute(tag_name,attrs));
     var htmlTag = selector.first().attr();
     upperAttrs = {}
@@ -575,25 +433,15 @@ class Transpiler {
   }
   return data;
 }
-
-   __generateReactFileContent($, function_name, filepath_from_src){
-    /*Generates React code from HTML soup object.
-
-        Parameters
-        ----------
-        $ : Cheerio
-            passed by reference.
-        function_name : str
-            Function name to be used from filename without extension with
+/**
+ * Generates React code from HTML cheerio object.
+ * @param {cheerio} $ cheerio passed by reference
+ * @param {string} function_name Function name to be used from filename without extension with
             first letter capitalized
-        filepath_from_src : str
-            Path to file from src directory
-
-        Returns
-        -------
-        str
-            Content for React file.
-    */
+ * @param {string} filepath_from_src Path to file from src directory
+ * @returns {string} Content for React file.
+ */
+   __generateReactFileContent($, function_name, filepath_from_src){
     styleTags = [];
     $("style").each((i, el) => {styleTags.push($(el).toString());});
     scriptTags = [];
@@ -692,19 +540,12 @@ class Transpiler {
     "export default" +function_name;  
   }
 
+  /**
+   * Generates safe name for React compnents from path to file.
+   * @param {string} link Path to file for which varibale is created.
+   * @returns {string} Variable name generated from link
+   */
   __getReactComponentName(link) {
-    /*Generates safe name for React compnents from path to file.
-
-        Parameters
-        ----------
-        link : str
-            Path to file for which varibale is created.
-
-        Returns
-        -------
-        str
-            Variable name generated from link
-    */
     varName = "";
     var regex = /^[0-9a-z]+$/;
     for (ch in link) {
@@ -717,15 +558,12 @@ class Transpiler {
     return "REACTONITE" + varName.toUpperCase();
   }
 
-  __rebuildIndexJs() {
-    /*Generates the index.js for React apps entry point, needed to handle
+  /**
+   * Generates the index.js for React apps entry point, needed to handle
         links to pages
-
-        Raises
-        ------
-        RuntimeError
-            Raised if the index.js file is not found in dest_dir
-    */
+      @throws {RuntimeError} Error raised if the index.js file is not found in dest_dir
+   */
+  __rebuildIndexJs() {
     pathToIndexJs = path.join(this.dest_dir, "src", "index.js");
     if (!fs.statSync(pathToIndexJs)) {
       throw new Error(
@@ -747,17 +585,14 @@ class Transpiler {
     NodeWrapper().prettify((path = pathToIndexJs));
   }
 
+/**
+ * Adds links to this.index_routes to be used in index.js generation
+
+ * @param {string} filePathFromSrc Path to the folder where file is in dest_dir folder from src
+ * @param {string} filenameNoExt Filename with no extension
+ */
   __addRoutesToIndexLinkArray(filePathFromSrc, filenameNoExt) {
-    /*Adds links to this.index_routes to be used in index.js generation
-
-        Parameters
-        ----------
-        filePathFromSrc : str
-            Path to the folder where file is in dest_dir folder from src
-        filenameNoExt : str
-            Filename with no extension
-    */
-
+  
     if (filenameNoExt == "index") {
       htmlPath = path.normalize(filePathFromSrc);
       jsPath = htmlPath.split(path.sep).join("./");
@@ -769,14 +604,11 @@ class Transpiler {
     }
   }
 
+  /**
+   * Generates content for index.js file in React codebase with handled routes
+   * @returns {string} Content for index.js file in React codebase
+   */
   __generateIndexJsContent(){
-    /*Generates content for index.js file in React codebase with handled routes
-
-        Returns
-        -------
-        str
-            Content for index.js file in React codebase
-    */
    var router = 'import {\n BrowserRouter as Router,\n Switch, \nRoute \n} from "react-router-dom";'
    var imports = []
    var routes = []
@@ -821,22 +653,15 @@ class Transpiler {
         reportWebVitals();\n'
   }
 
-  transpileFile(filepath){
-    /*Transpiles the source HTML file given at the given filepath
+  /**
+   * Transpiles the source HTML file given at the given filepath
       to a React code, which is then copied over to the React build
       directory, if not HTML file then get's copied directly.
 
-      Parameters
-      ----------
-      filepath : str
-        Path to the source HTML file which is to be transpiled
-
-      Raises
-      ------
-      RuntimeError
-        Raised if the source html file is not found
-    */
-
+   * @param {string} filepath Path to the source HTML file which is to be transpiled
+   * @throws {RuntimeError} Raised if the source html file is not found
+   */
+  transpileFile(filepath){
     components = filepath.split(path.sep);
     index = components.indexOf("src");
     file_name_with_extension = components.pop();
@@ -913,22 +738,17 @@ class Transpiler {
     }
   }
 
-  transpile_project(copy_static=true){
-    /*  Runs initial checks like ensuring the source
-        directories exist, and the source file is present.
-        After that, copies non html files and transpiles the source.
+  /**
+   * Runs initial checks like ensuring the source
+     directories exist, and the source file is present.
+     After that, copies non html files and transpiles the source.
 
-        Parameters
-        ----------
-        copy_static : bool, optional
+   * @param {boolean} copy_static bool, optional
             Will copy non .html files if True, only .html files will be
             transpiled if False, default True
-
-        Raises
-        ------
-        RuntimeError
-            Raised source html file is missing.
-    */
+   * @throws {RuntimeError} Error raised when source html file is missing. 
+   */
+  transpile_project(copy_static=true){
 
     var entry_point_html = path.join(this.src_dir, 'index.html')
     var stats = fs.statSync(entry_point_html);
