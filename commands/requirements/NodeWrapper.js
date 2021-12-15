@@ -5,17 +5,12 @@ const fs = require("fs");
 const { cwd } = require("process");
 
 class NodeWrapper {
-  /*Node wrapper to execute commands corresponding to node js using python.
-
-    Attributes
-    ----------
-    npx : str
-        Commandline to be used for npx according to system(Linux, Windows)
-    npm : str
-        Commandline to be used for npm according to system(Linux, Windows)
-    node : str
-        Commandline to be used for node according to system(Linux, Windows)
-  */
+   /**
+   * Node wrapper to execute commands corresponding to node js using python.
+   * @property {string} npx Commandline to be used for npx according to system(Linux, Windows)
+   * @property {string} npm Commandline to be used for npm according to system(Linux, Windows)
+   * @property {string} node Commandline to be used for node according to system(Linux, Windows)
+   */
 
   constructor() {
     if (os.type == "Windows_NT") {
@@ -38,16 +33,11 @@ class NodeWrapper {
     }
   }
 
+   /**
+   * Checks the installation of Nodejs/npm/npx. If npm is not available it throws an error.
+   * @throws {RuntimeError} Error raised if Nodejs/npm/npx is not available.
+   */
   check_react_install() {
-    /*Checks the installation of Nodejs/npm/npx. If npm is not
-        available it throws an error.
-
-        Raises
-        ------
-        RuntimeError
-            Raised if Nodejs/npm/npx is not available.
-    */
-
     try {
       this.run(this.npx + " --version");
     } catch {
@@ -100,18 +90,13 @@ class NodeWrapper {
     this.run(this.npm + " start", gui_dir);
   }
 
+  /**
+   * Creates a new react app and renames it as specified.
+   * @param {string} project_name Project name to be used to create the app
+   * @param {string} rename_to Renames the created React app to this
+   * @param {string} working_dir Working dir to run commands inside
+   */
   create_react_app(project_name, rename_to, working_dir = ".") {
-    /*Creates a new react app and renames it as specified.
-
-        Parameters
-        ----------
-        project_name : str
-            Project name to be used to create the app
-        rename_to : str
-            Renames the created React app to this
-        working_dir : str
-            Working dir to run commands inside
-    */
     this.run(
       this.npx +
         " create-react-app " +
@@ -128,40 +113,29 @@ class NodeWrapper {
     }
   }
 
+  /**
+   *Installs the given package in npm and saves in package.json
+   * @param {string} package_name Package to be installed.
+   * @param {string} working_dir Directory containing npm project root
+   */
   install(package_name, working_dir) {
-    /*Installs the given package in npm and saves in package.json
-
-        Parameters
-        ----------
-        package_name : str
-            Package to be installed.
-        working_dir : str
-            Directory containing npm project root
-    */
     this.run(this.npm + " i " + package_name + " --save", working_dir);
   }
 
+   /**
+   *Create an optimized build of your app in the build folder
+   * @param {string} working_dir Directory containing npm project root
+   */
   build(working_dir) {
-    /*Create an optimized build of your app in the build folder
-
-        Parameters
-        ----------
-        working_dir : str
-            Directory containing npm project root
-    */
     this.run(this.npm + " run build", working_dir);
   }
 
+   /**
+   * Runs code formatting using prettier on the given path
+   * @param {string} path Filepath or directory to run prettier on
+   * @param {string} working_dir Directory from which command is run
+   */
   prettify(path, working_dir = ".") {
-    /*Runs code formatting using prettier on the given path
-
-        Parameters
-        ----------
-        path : str
-            Filepath or directory to run prettier on
-        working_dir : str
-            Directory from which command is run
-    */
     this.run(this.npx + " prettier --write " + path, working_dir);
   }
 }
