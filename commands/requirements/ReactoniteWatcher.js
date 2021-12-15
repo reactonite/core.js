@@ -5,31 +5,12 @@ const Transpiler = require("./Transpiler");
 hound = require("hound");
 
 class ReactoniteWatcher {
-  /*A file/directory watcher to report events incase
-    they are modified/created/deleted.
-
-    Attributes
-    ----------
-    src_dir : str
-        Path of the source direectory to watch and report for events.
-    dest_dir : str
-        Path of the destination direectory to write transpiled code.
-    config_settings : dict
-        Path to src_dir and dest_dir as dict object, stored in config.json
-    patterns : str, optional
-        Pattern of files/directories to watch, defaults to "*"
-    ignore_patterns : str, optional
-        Pattern of files/directories to ignore or not watch, defaults to ""
-    ignore_directories : bool, optional
-        Parameter whether the watcher should ignore directories or
-        not, defaults to False
-    case sensitive : bool
-        Parameter explaining whether file/directory names are
-        case-sensitive or not, defaults to True
-    recursive : bool
-        Parameter whether the watcher should recursively watch
-        inside directories or not, defaults to True
-    */
+  /**
+   * A file/directory watcher to report events incase they are modified/created/deleted.
+   *@property {string} src_dir Path of the source directory to watch and report for events.
+   *@property {string} dest_dir Path of the destination direectory to write transpiled code.
+   *@property {object} config_settings Path to src_dir and dest_dir as dict object, stored in config.json
+   */
 
   constructor(
     config_settings,
@@ -65,11 +46,10 @@ class ReactoniteWatcher {
     );
   }
 
+  /**
+   * Runs the hound service on the given path. Handles various events to different functions as per the requirement
+   */
   start() {
-    /*Runs the watchdog service on the given path. Handles
-      various events to different functions as per the
-      requirement
-    */
     watcher = hound.watch(this.src_dir);
     watcher.on("create", __on_created(file, stats));
     watcher.on("change", __on_modified(file, stats));
@@ -78,15 +58,12 @@ class ReactoniteWatcher {
     print("Started watching for changes on path" + this.src_dir);
   }
 
+  /**
+   *This event is called when a file/directory is created.
+   * @param {object} file File/Directory
+   * @param {object} stats An event object containing necessary details about it.
+   */
   __on_created(file, stats) {
-    /*This event is called when a file/directory
-      is created.
-
-      Parameters
-      ----------
-      event : obj
-          An event object containing necessary details about it.
-    */
     console.log(file + " has been created!");
     var stats = fs.statSync(file);
     if (stats.isDirectory()) {
@@ -100,15 +77,12 @@ class ReactoniteWatcher {
     }
   }
 
+  /**
+   * This event is called when a file/directory is deleted.
+   * @param {object} file File/Directory
+   * @param {object} stats An event object containing necessary details about it
+   */
   __on_deleted(file, stats) {
-    /*This event is called when a file/directory
-        is deleted.
-
-        Parameters
-        ----------
-        event : obj
-            An event object containing necessary details about it.
-    */
     console.log("Deleted" + file + "!");
     try {
       this.transpiler.transpile_project((copy_static = false));
@@ -118,15 +92,12 @@ class ReactoniteWatcher {
     this.__delete_file(file);
   }
 
+  /**
+   * This event is called when a file/directory is modified.
+   * @param {*} file File/Directory
+   * @param {*} stats An event object containing necessary details about the it.
+   */
   __on_modified(file, stats) {
-    /*This event is called when a file/directory
-        is modified.
-
-        Parameters
-        ----------
-        event : obj
-            An event object containing necessary details about it.
-    */
     console.log(file + "has been modified");
     var stats = fs.statSync(file);
     if (stats.isDirectory()) {
