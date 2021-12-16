@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const CONSTANTS = require("./Constants");
 const Transpiler = require("./Transpiler");
-hound = require("hound");
+const hound = require("hound");
 
 class ReactoniteWatcher {
   /**

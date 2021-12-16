@@ -7,7 +7,7 @@ const { cwd } = require("process");
 class NodeWrapper {
   /**
    *
-   * Node wrapper to execute commands corresponding to node js using python.
+   * Node wrapper to execute commands corresponding to node js using javascript
    * @property {string} npx Commandline to be used for npx according to system(Linux, Windows)
    * @property {string} npm Commandline to be used for npm according to system(Linux, Windows)
    * @property {string} node Commandline to be used for node according to system(Linux, Windows)
