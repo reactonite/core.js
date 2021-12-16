@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Home</title>
+    <title>JSDoc: Source: CreateHtmlCss.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,32 +17,46 @@
 
 <div id="main">
 
-    <h1 class="page-title">Home</h1>
+    <h1 class="page-title">Source: CreateHtmlCss.js</h1>
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>var fs = require("fs");
+var path = require("path");
+/**
+ *Takes body of the POST response from GrapesJS and saves HTML File
 
+ * @param {string} content HTML Content
+ * @param {string} loc Location where we have to save the HTML File
+ */
+function saveHtml(content, loc) {
+  var html_front =
+    '&lt;!doctype html>&lt;html lang="en">&lt;head>&lt;meta charset="utf-8"/>&lt;title>The HTML5 Herald&lt;/title>&lt;meta name="description" content="The HTML5 Herald"/>&lt;meta name="author" content="SitePoint"/>&lt;link rel="stylesheet" href="./main.css"/>&lt;/head>&lt;body>';
+  var html_back = "&lt;/body>&lt;/html>";
+  var html_content = html_front + content + html_back;
+  fs.writeFileSync(path.join(loc, "index.html"), html_content, { flag: "w+" });
+}
 
-    <h3> </h3>
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
+/**
+ *Takes body of the POST response from GrapesJS and saves CSS File
+ * @param {string} content CSS Content
+ * @param {location} loc Location where we have to save the CSS File
+ */
+function saveCss(content, loc) {
+  fs.writeFileSync(path.join(loc, "main.css"), content, { flag: "w+" });
+}
+module.exports = {
+  saveHtml,
+  saveCss,
+};
+</code></pre>
+        </article>
+    </section>
 
 
 
